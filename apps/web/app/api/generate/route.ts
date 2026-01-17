@@ -1,8 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { decode } from '@toon-format/toon'
+import { decode } from "@toon-format/toon";
 
 export const maxDuration = 30;
-
 
 const SYSTEM_PROMPT = `You are a UI generator that outputs TOON format.
 
@@ -177,28 +176,41 @@ export async function POST(req: Request) {
   const totalCost = inputCost + outputCost;
 
   console.log(`Token usage - Input: ${inputTokens}, Output: ${outputTokens}`);
-  console.log(`Cost - Input: $${inputCost.toFixed(6)}, Output: $${outputCost.toFixed(6)}, Total: $${totalCost.toFixed(6)}`);
+  console.log(
+    `Cost - Input: $${inputCost.toFixed(6)}, Output: $${outputCost.toFixed(6)}, Total: $${totalCost.toFixed(6)}`,
+  );
   console.log(`Duration: ${durationMs}ms (${(durationMs / 1000).toFixed(2)}s)`);
 
   // Decode the TOON format
-  const decoded = decode(fullResponse) as { root: string; elements: Record<string, unknown> };
+  const decoded = decode(fullResponse) as {
+    root: string;
+    elements: Record<string, unknown>;
+  };
 
   // Convert decoded result to JSON Patches for the frontend
   const encoder = new TextEncoder();
   const readableStream = new ReadableStream({
     async start(controller) {
       try {
-        // Send root patch first
         if (decoded.root) {
-          const rootPatch = JSON.stringify({ op: "set", path: "/root", value: decoded.root });
+          const rootPatch = JSON.stringify({
+            op: "set",
+            path: "/root",
+            value: decoded.root,
+          });
           controller.enqueue(encoder.encode(rootPatch + "\n"));
+          await new Promise((resolve) => setTimeout(resolve, 100));
         }
 
-        // Send each element as a patch
         if (decoded.elements) {
           for (const [key, element] of Object.entries(decoded.elements)) {
-            const elementPatch = JSON.stringify({ op: "set", path: `/elements/${key}`, value: element });
+            const elementPatch = JSON.stringify({
+              op: "set",
+              path: `/elements/${key}`,
+              value: element,
+            });
             controller.enqueue(encoder.encode(elementPatch + "\n"));
+            await new Promise((resolve) => setTimeout(resolve, 50));
           }
         }
 
